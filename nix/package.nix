@@ -15,7 +15,7 @@
 
 buildNpmPackage rec {
   pname = "spark-store";
-  version = "5.1.1";
+  version = (builtins.fromJSON (builtins.readFile ../package.json)).version;
 
   src = lib.cleanSourceWith {
     src = ../.;
