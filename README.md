@@ -50,6 +50,49 @@ Linux 应用的数量相对有限，Wine 软件的可获取性也颇为困难。
 
 1. `paru -S spark-store`
 
+### Nix / NixOS
+
+仓库提供 `x86_64-linux` 和 `aarch64-linux` 的 Flake 软件包。在仓库根目录构建和运行：
+
+```bash
+nix build .
+nix run .
+```
+
+Flake 复用 `nix/package.nix` 从源码构建，版本读取自 `package.json`，npm 依赖由 `package-lock.json` 固定。`flake.lock` 固定 Nixpkgs 和 `github:Melorise/amber-pm/nixos` 的版本，APM 与商店共用 Nixpkgs 输入。
+
+在 NixOS Flake 的 `inputs` 中加入商店和 APM：
+
+```nix
+spark-store = {
+  url = "git+https://gitee.com/Melorise/spark-store.git?ref=nixos";
+  inputs.nixpkgs.follows = "nixpkgs";
+  inputs.amber-pm.follows = "amber-pm";
+};
+amber-pm = {
+  url = "github:Melorise/amber-pm/nixos";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
+
+在通过 `specialArgs` 接收 `inputs` 的系统配置模块中引用软件包，并启用 APM 模块管理容器状态、字体和桌面入口：
+
+```nix
+{ inputs, pkgs, ... }:
+{
+  imports = [ inputs.amber-pm.nixosModules.default ];
+
+  environment.systemPackages = [
+    inputs.spark-store.packages.${pkgs.stdenv.hostPlatform.system}.default
+  ];
+
+  programs.amber-pm = {
+    enable = true;
+    package = inputs.amber-pm.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  };
+}
+```
+
 ---
 <div align="center">
 <img src="./galleries/image.png" alt="APM Screenshot" width="90%"  />
